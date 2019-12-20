@@ -6,21 +6,10 @@ export default (props) => {
     const [genderList, setGenderList] = useState(GENDERS);
     const [speciesList, setSpeciesList] = useState(SPECIES);
     const [originList, setOriginList] = useState(ORIGIN);
-    const [selectedItems, setSelectedItems] = useState([
-        ...genderList, ...speciesList
-    ])
 
     const getSelectedItems = (toggleItem) => {
-        let selectedItemCopy = [...selectedItems]
-        let index = selectedItems.findIndex((item) => item.key === toggleItem.key)
-        if(index>=0) {
-            selectedItemCopy.splice(index, 1)
-        } else {
-            selectedItemCopy.push(toggleItem)
-        }
-        console.log('selectedItemsCopy',selectedItemCopy)
-        setSelectedItems(selectedItemCopy);
-        props.sendSelectedItems(selectedItemCopy);
+        let result = [...genderList, ...speciesList]
+        props.sendSelectedItems(result);
     }
 
     const onChecked = (param, i) => {
@@ -88,7 +77,7 @@ export default (props) => {
 
     return (
         <div className="left-wrapper">
-            <h3>Filters</h3>
+            <p class="header-text">Filters</p>
             <div className="filter-box">
                 <p className="checkbox-header">Species</p>
                 {renderSpecies()}

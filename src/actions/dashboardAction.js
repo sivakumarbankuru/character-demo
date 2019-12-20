@@ -1,17 +1,24 @@
 import actionTypes from '../utils/actionTypes';
 import { getCharactersApi } from '../api/dashboardApi';
 
+export const getFilteredCharacters = (characters) => dispatch => {
+    dispatch({
+        type: actionTypes.CHARACTERS.FILTER,
+        payload: {
+            filterCharacters: characters
+        }
+    })
+}
+
 export const getCharacters = () => dispatch => {
     dispatch({ type: actionTypes.CHARACTERS.REQUEST });
     dispatch(getCharactersApi())
         .then(res => {
-            console.log(res)
             if (res && res.status === 200) {
                 return res
             } return {}
         })
         .then((res) => {
-            console.log('res', res.data.results)
             if(res.data && res.data.results) {
                 dispatch({
                     type: actionTypes.CHARACTERS.RESPONSE,
@@ -19,6 +26,7 @@ export const getCharacters = () => dispatch => {
                         characters: res.data.results
                     }
                 })
+                dispatch(getFilteredCharacters(res.data.results))
             } else {
                 dispatch({
                     type: actionTypes.CHARACTERS.RESPONSE,
@@ -30,7 +38,6 @@ export const getCharacters = () => dispatch => {
             
         })
         .catch((err) => {
-            console.log(err)
             alert('Error occured while fetching data');
         })
 }

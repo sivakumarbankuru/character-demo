@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import Filters from './filters';
-import { getCharacters } from '../../actions/dashboardAction';
+import { getCharacters, getFilteredCharacters } from '../../actions/dashboardAction';
 import Character from './character';
 import { GENDERS, SPECIES } from '../../utils/constants';
 
@@ -12,98 +12,97 @@ class Dashboard extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            characterList: [],
-            selectedFilters: [...GENDERS, ...SPECIES]
+            selectedFilters: [...GENDERS, ...SPECIES],
+            isLoad: true
         }
     }
 
     componentDidMount() {
         this.props.getCharacters();
-    }
-
-    static getDerivedStateFromProps(nextProps, prevState) {
-        if (prevState.characterList.length === 0) {
-            return { characterList: nextProps.characters }
-        } else {
-            return { characterList: prevState.characterList }
-        }
-
+        this.setState({ isLoad: false })
     }
 
     renderCharacter = () => {
-        const { characterList } = this.state;
-        if (characterList.length > 0) {
-            return characterList.map((item, i) => {
+        const { filterCharacters } = this.props;
+        if (filterCharacters.length > 0) {
+            return filterCharacters.map((item, i) => {
                 return <Character data={item} key={i} />
             })
+        } else {
+            return <p>No Records Found</p>
         }
     }
 
     sortById = (e) => {
         if (e.target.value) {
+            const { filterCharacters } = this.props;
             let sortBy = e.target.value;
             let sortedResult = []
-            const { characterList } = this.state;
+            let filterCharactersCopy = [...filterCharacters]
             switch (sortBy) {
                 case 'desc':
-                    sortedResult = characterList.sort((a, b) => b.id - a.id);
+                    sortedResult = filterCharactersCopy.sort((a, b) => b.id - a.id);
                     break;
                 default:
-                    sortedResult = characterList.sort((a, b) => a.id - b.id);
+                    sortedResult = filterCharactersCopy.sort((a, b) => a.id - b.id);
             }
-            this.setState({ characterList: sortedResult });
+            this.props.getFilteredCharacters(sortedResult)
         }
     }
 
     getSelectedItems = (filterItems) => {
         this.setState({ selectedFilters: filterItems })
-        const { characterList } = this.state;
+        const { characters } = this.props;
         let genderValues = []
         let speciesValues = []
         filterItems.forEach((item) => {
-            if (item.item === 'gender') {
+            if (item.item === 'gender' && item.isChecked) {
                 genderValues.push(item.key)
-            } else {
+            } else if(item.isChecked) {
                 speciesValues.push(item.key)
             }
         })
-
+        let filterResult = []
         if (filterItems.length > 0) {
-            let filterResult = characterList.filter((character) => {
+            characters.forEach((character) => {
                 if (genderValues.length > 0 && speciesValues.length > 0) {
                     if (genderValues.indexOf(character.gender) !== -1 && speciesValues.indexOf(character.species) !== -1) {
-                        return character
+                        filterResult.push(character)
                     }
                 }
                 else if (genderValues.length > 0 && speciesValues.length === 0) {
                     if (genderValues.indexOf(character.gender) !== -1) {
-                        return character
+                        filterResult.push(character)
                     }
                 } else if (speciesValues.length > 0 && genderValues.length === 0) {
                     if (speciesValues.indexOf(character.species) !== -1) {
-                        return character
+                        filterResult.push(character)
                     }
                 }
             })
-            this.setState({ characterList: filterResult })
         }
+        this.props.getFilteredCharacters(filterResult)
     }
 
     onCloseChip(i) {
         const { selectedFilters } = this.state;
-        selectedFilters.splice(i, 1)
-        this.setState({selectedFilters: selectedFilters})
+        selectedFilters[i].isChecked = false;
+        this.setState({ selectedFilters: selectedFilters })
     }
 
     renderChips = () => {
         const { selectedFilters } = this.state;
         return selectedFilters.map((item, i) => {
-            return <div class="chip" key={i}>
-                <div class="chip-content">{item.key}</div>
-                <div class="chip-close" onClick={() =>this.onCloseChip(i)}>
-                    <svg class="chip-svg" focusable="false" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"></path></svg>
+            if (item.isChecked) {
+                return <div class="chip" key={i}>
+                    <div class="chip-content">{item.key}</div>
+                    <div class="chip-close" onClick={() => this.onCloseChip(i)}>
+                        <svg class="chip-svg" focusable="false" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"></path></svg>
+                    </div>
                 </div>
-            </div>
+            } else {
+                return null
+            }
         })
     }
 
@@ -114,7 +113,7 @@ class Dashboard extends Component {
                     <p class="header-text">Sapient</p>
                 </div>
                 <div className="container-box">
-                    <Filters sendSelectedItems={this.getSelectedItems} />
+                    <Filters sendSelectedItems={this.getSelectedItems} selectedFilters={this.state.selectedFilters} />
                     <div className="right-wrapper">
                         <p className="checkbox-header">Selected Filter</p>
                         <div className="selected-filters">
@@ -141,13 +140,15 @@ class Dashboard extends Component {
 const mapStateToProps = (store) => {
     return {
         characters: store.dashboard.characters,
-        isLoading: store.dashboard.isLoading
+        isLoading: store.dashboard.isLoading,
+        filterCharacters: store.dashboard.filterCharacters
     }
 }
 
 
 const mapDisptachToProps = {
-    getCharacters
+    getCharacters,
+    getFilteredCharacters
 }
 
 export default connect(mapStateToProps, mapDisptachToProps)(Dashboard)

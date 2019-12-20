@@ -1,6 +1,7 @@
 const initialState = {
     isLoading: false,
-    characters: []
+    characters: [],
+    filterCharacters: []
 }
 
 export default (state=initialState, action) => {
@@ -18,6 +19,12 @@ export default (state=initialState, action) => {
                characters,
                isLoading: false
             }
+        case 'CHARACTERS.FILTER':
+            const {filterCharacters} = action.payload
+            return {
+            ...state,
+            filterCharacters,
+        }
         default:
             return state
     }
